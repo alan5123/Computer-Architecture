@@ -7,7 +7,22 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        self.ram = [0] * 256
+        self.reg = [0] * 8
+        self.pc = 0
+        self.running = True
+
+        # instruction handlers
+        self.HLT = 0b00000001
+        self.LDI = 0b10000010
+        self.PRN = 0b01000111
+
+    def ram_read(self, MAR):
+        return self.ram[MAR]
+    
+    def ram_write(self, MAR, MDR):
+        self.ram[MAR] =  MDR
+
 
     def load(self):
         """Load a program into memory."""
@@ -17,13 +32,14 @@ class CPU:
         # For now, we've just hardcoded a program:
 
         program = [
+            # 0b prefix denotes binary
             # From print8.ls8
-            0b10000010, # LDI R0,8
+            self.LDI, # LDI R0,8
             0b00000000,
             0b00001000,
-            0b01000111, # PRN R0
+            self.PRN, # PRN R0
             0b00000000,
-            0b00000001, # HLT
+            self.HLT, # HLT
         ]
 
         for instruction in program:
@@ -62,4 +78,24 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        # FETCH, DECODE, EXECUTE
+        self.trace()
+
+        while self.running:
+            IR = self.ram_read(self.pc)
+            operand_a = self.ram_read(self.pc + 1)
+            operand_b = self.ram_read(self.pc + 2)
+
+            if IR == "ADD":
+                self.alu("ADD", operand_a, operand_b)
+                self.pc += 3
+            elif IR == self.HLT:
+                self.running = False
+                self.pc += 1
+            elif IR == self.LDI:
+                self.reg[operand_a] = operand_b
+                self.pc += 3
+            elif IR == self.PRN:
+                num = self.reg[int(str(operand_a))]
+                print(num)
+                self.pc += 2
